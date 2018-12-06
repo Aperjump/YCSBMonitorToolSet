@@ -3,54 +3,82 @@ sys.path.append("..")
 import subprocess
 import config
 import os
-port = 11213
-mem = 1000
 import re
 import matplotlib.pyplot as plt
+from drawnow import drawnow
 
+port = 11213
+mem = 1000
 memcache_command = config.MEMCACHE_DIR + "/memcached" + " -p " + str(port) + " -m " + str(mem) + " -vv"
-os.chdir(config.YCSB_DIR)
 YCSB_command = "bin/ycsb run jdbc -P workloads/workloadb -P db.properties -s -threads 2 -p use_cache=true"
 
-child1 = subprocess.Popen(memcache_command, encoding= 'utf-8', shell = True, stderr = subprocess.DEVNULL,
-                          env = {"LD_LIBRARY_PATH" : "/usr/local/BerkeleyDB.18.1/lib"})
-child2 = subprocess.Popen(YCSB_command, stdout = subprocess.PIPE,
-                         stderr = subprocess.PIPE, encoding= 'utf-8', shell = True,
-                         preexec_fn=os.setsid)
-time_seq = []
-tot_num_seq = []
-opsec_seq = []
-plt.ion()
-
-while child2.poll() is None:
-    # out = child.stdout.readline()
-    errs = child2.stderr.readline().strip()
-    cur_list = errs.split()
-    #2018-12-05 22:46:03:883 2 sec: 8888 operations;
-    # 6239 current ops/sec; [READ: Count=4587, Max=7811, Min=72, Avg=238.17, 90=313, 99=1138, 99.9=4431, 99.99=7811]
-    # [UPDATE-FAILED: Count=76, Max=1553, Min=465, Avg=714.63, 90=861, 99=1320, 99.9=1553, 99.99=1553]
-    # [UPDATE: Count=218, Max=4379, Min=577, Avg=1276.05, 90=1631, 99=3085, 99.9=4379, 99.99=4379]
-    # [READ-FAILED: Count=1349, Max=9015, Min=169, Avg=385.18, 90=519, 99=968, 99.9=5795, 99.99=9015]
-    plt.figure(1)
+def meta_graph_wrapper(plot_new):
+    time_seq = []
+    observe_seq = []
+    plt.ion()
     plt.show()
-    if len(cur_list) == 45:
-        cur_sec = cur_list[2]
-        tot_op = cur_list[4]
-        opsec = cur_list[6]
-        time_seq.append(int(cur_sec))
-        tot_num_seq.append(float(tot_op))
-        opsec_seq.append(float(opsec))
-        plt.plot(time_seq, opsec_seq, '-r')
-        plt.draw()
-        readcount = cur_list[10].split("=")[1][:-1]
-        readavg = cur_list[13].split("=")[1][:-1]
-        readfcount = cur_list[37].split("=")[1][:-1]
-        readfavg = cur_list[40].split("=")[1][:-1]
-        updatef_count = cur_list[19].split("=")[1][:-1]
-        updatef_avg = cur_list[22].split("=")[1][:-1]
-        update_count = cur_list[28].split("=")[1][:-1]
-        update_avg = cur_list[31].split("=")[1][:-1]
-        print("good")
-    # print(errs)
+    def plot_func(next_time, next_obs):
+        time_seq.append(next_time)
+        observe_seq.append(next_obs)
+        #print(str(next_time) + " " + str(next_obs))
+        plot_new(time_seq, observe_seq)
+    return plot_func
 
-child1.kill()
+@meta_graph_wrapper
+def plot_new(x, y):
+    plt.plot(x, y, '-r')
+    plt.draw()
+
+def hyper_metric(section, field):
+    def meta_metric(func):
+        time_pattern = re.compile(".*?(\d+)\ssec.*")
+        if section == "META":
+            if field == "ops/sec":
+                pattern = re.compile(".*?(\d+)\scurrent\sops/sec.*")
+            else:
+                pattern = re.compile(".*?(\d+)\s" + field + ".*")
+        elif section in ["READ", "UPDATE", "READ-FAILED", "UPDATE_FAILED"]:
+            pattern = re.compile(".*?\[" + section + ".*?" + field + "=(\d+).*")
+        def func_inner(flag):
+            func(time_pattern, pattern, flag)
+        return func_inner
+    return meta_metric
+
+@hyper_metric(section = "READ-FAILED", field = "Count")
+def getresponse(time_part, search_pattern, flag):
+    while YCSB_process.poll() is None:
+        # out = child.stdout.readline()
+        errs = YCSB_process.stderr.readline().strip()
+        cur_list = errs.split()
+        plt.show()
+        if len(cur_list) == 45:
+            cur_time = int(re.search(time_part, errs).group(1))
+            obsv = float(re.search(search_pattern, errs).group(1))
+            if flag == 0:
+                plot_new(cur_time, obsv)
+                if int(cur_time) >= 60:
+                    #plt.axvline(60, color = 'g')
+                    break
+            else:
+                plot_new(60 + cur_time, obsv)
+            print(errs)
+
+if __name__ == "__main__":
+    os.chdir(config.YCSB_DIR)
+    memcache_process = subprocess.Popen(memcache_command, encoding='utf-8', shell=True, stderr=subprocess.DEVNULL,
+                                        env={"LD_LIBRARY_PATH": "/usr/local/BerkeleyDB.18.1/lib"})
+    YCSB_process = subprocess.Popen(YCSB_command, stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE, encoding='utf-8', shell=True,
+                                    preexec_fn=os.setsid)
+    getresponse(0)
+    memcache_process.kill()
+    YCSB_process.kill()
+    print("#######Killing Process#######")
+    memcache_process = subprocess.Popen(memcache_command, encoding='utf-8', shell=True, stderr=subprocess.DEVNULL,
+                                        env={"LD_LIBRARY_PATH": "/usr/local/BerkeleyDB.18.1/lib"})
+    YCSB_process = subprocess.Popen(YCSB_command, stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE, encoding='utf-8', shell=True,
+                                    preexec_fn=os.setsid)
+    getresponse(1)
+    memcache_process.kill()
+    YCSB_process.kill()
