@@ -4,11 +4,14 @@ import subprocess
 import config
 import os
 import re
+import matplotlib
+#matplotlib.use('agg')
 import matplotlib.pyplot as plt
 from drawnow import drawnow
 
 port = 11213
-mem = 1000
+mem = 10
+BDB_DIR = config.BDB_DIR
 memcache_command = config.MEMCACHE_DIR + "/memcached" + " -p " + str(port) + " -m " + str(mem) + " -vv"
 YCSB_command = "bin/ycsb run jdbc -P workloads/workloadb -P db.properties -s -threads 2 -p use_cache=true"
 
@@ -64,6 +67,8 @@ def getresponse(time_part, search_pattern, flag):
             print(errs)
 
 if __name__ == "__main__":
+    if os.path.exists(BDB_DIR):
+        subprocess.run(["rm", "-rf", BDB_DIR])
     os.chdir(config.YCSB_DIR)
     memcache_process = subprocess.Popen(memcache_command, encoding='utf-8', shell=True, stderr=subprocess.DEVNULL,
                                         env={"LD_LIBRARY_PATH": "/usr/local/BerkeleyDB.18.1/lib"})
@@ -82,3 +87,4 @@ if __name__ == "__main__":
     getresponse(1)
     memcache_process.kill()
     YCSB_process.kill()
+    
