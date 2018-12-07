@@ -31,12 +31,10 @@ def main():
         args = parser.parse_args()
     except IOError as msg:
         parser.error(str(msg))
-
     if (args.gen):
         write2file(args.gen)
     elif (args.runinterval):
         readfromfile(args.runinterval)
     else:
         print("invalid argument")
-
 main()
