@@ -14,23 +14,28 @@ mem = 10
 BDB_DIR = config.BDB_DIR
 memcache_command = config.MEMCACHE_DIR + "/memcached" + " -p " + str(port) + " -m " + str(mem) + " -vv"
 YCSB_command = "bin/ycsb run jdbc -P workloads/workloadb -P db.properties -s -threads 2 -p use_cache=true"
+origin_memcache_command = config.ORIGIN_MEMCACHE_DIR + "/memcached" + " -p " + str(11214) + " -m " + str(mem) + " -vv"
 
 def meta_graph_wrapper(plot_new):
     time_seq = []
     observe_seq = []
     plt.ion()
     plt.show()
-    def plot_func(next_time, next_obs):
+    def plot_func(next_time, next_obs, flag):
         time_seq.append(next_time)
         observe_seq.append(next_obs)
         #print(str(next_time) + " " + str(next_obs))
-        plot_new(time_seq, observe_seq)
+        if flag == 1:
+            drawnow(plot_new, time_seq, observe_seq)
+        else:
+            pass
     return plot_func
 
 @meta_graph_wrapper
 def plot_new(x, y):
     plt.plot(x, y, '-r')
     plt.draw()
+
 
 def hyper_metric(section, field):
     def meta_metric(func):
@@ -58,12 +63,12 @@ def getresponse(time_part, search_pattern, flag):
             cur_time = int(re.search(time_part, errs).group(1))
             obsv = float(re.search(search_pattern, errs).group(1))
             if flag == 0:
-                plot_new(cur_time, obsv)
+                plot_new(cur_time, obsv, 0)
                 if int(cur_time) >= 60:
                     #plt.axvline(60, color = 'g')
                     break
             else:
-                plot_new(60 + cur_time, obsv)
+                plot_new(60 + cur_time, obsv, 0)
             print(errs)
 
 if __name__ == "__main__":
@@ -85,6 +90,7 @@ if __name__ == "__main__":
                                     stderr=subprocess.PIPE, encoding='utf-8', shell=True,
                                     preexec_fn=os.setsid)
     getresponse(1)
+
     memcache_process.kill()
     YCSB_process.kill()
     
