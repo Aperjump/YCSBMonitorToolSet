@@ -134,7 +134,7 @@ class Test_suit(object):
                                         capture_output= True, encoding = 'utf-8')
             portprocess_num = re.search(".*memcached (\d+).*", tmp_output.stdout).group(1)
             subprocess.run("kill -9 " + portprocess_num, shell = True)
-            with open(self.orfigin_mem_test_file + "_" + str(i) + ".json", 'a') as f:
+            with open(self.origin_mem_test_file + "_" + str(i) + ".json", 'a') as f:
                 f.write(json.dumps(self.origin_memcahce_records))
 
     def parseycsboutput(self, cur_list, offset, round):
@@ -162,6 +162,6 @@ class Test_suit(object):
         return new_data
 
 if __name__ == "__main__":
-    cur_test = Test_suit("10thread100m", 120, 100, 10, 5)
-    cur_test.runmemcache()
+    cur_test = Test_suit("10thread100m", 120, 100, 10, 3)
+    #cur_test.runmemcache()
     cur_test.runorigin_memcache()

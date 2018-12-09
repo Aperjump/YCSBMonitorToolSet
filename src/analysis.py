@@ -1,4 +1,6 @@
 import json
+from typing import List, Any
+
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -26,15 +28,15 @@ mfile_name = "/home/aperjump/Work/YCSBMonitorToolSet/data/modified_memcache_10th
 ofile_name = "/home/aperjump/Work/YCSBMonitorToolSet/data/origin_memcache_10thread100m_"
 mmemcache = []
 omemcache = []
-for i in range(5):
+for i in range(3):
     cur_data = pd.read_json(mfile_name + str(i) +".json")
     mmemcache.append(cur_data)
-for i in range(5):
+for i in range(3):
     cur_data2 = pd.read_json(ofile_name + str(i) + ".json")
     omemcache.append(cur_data2)
 mmemcache = pd.concat(mmemcache)
 omemcache = pd.concat(omemcache)
-omemcache = omemcache[omemcache["round"] != 4]
+mmemcache = mmemcache[mmemcache["round"] != 2]
 mavgmemcache = mmemcache.groupby(['time']).mean()
 oavgmemcache = omemcache.groupby(['time']).mean()
 
