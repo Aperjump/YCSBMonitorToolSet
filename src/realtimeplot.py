@@ -26,7 +26,7 @@ def meta_graph_wrapper(plot_new):
         observe_seq.append(next_obs)
         #print(str(next_time) + " " + str(next_obs))
         if flag == 1:
-            drawnow(plot_new, time_seq, observe_seq)
+            drawnow(plot_new, x = time_seq, y = observe_seq)
         else:
             pass
     return plot_func
@@ -63,12 +63,12 @@ def getresponse(time_part, search_pattern, flag):
             cur_time = int(re.search(time_part, errs).group(1))
             obsv = float(re.search(search_pattern, errs).group(1))
             if flag == 0:
-                plot_new(cur_time, obsv, 0)
+                plot_new(cur_time, obsv, 1)
                 if int(cur_time) >= 60:
                     #plt.axvline(60, color = 'g')
                     break
             else:
-                plot_new(60 + cur_time, obsv, 0)
+                plot_new(60 + cur_time, obsv, 1)
             print(errs)
 
 if __name__ == "__main__":

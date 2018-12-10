@@ -28,10 +28,10 @@ mfile_name = "/home/aperjump/Work/YCSBMonitorToolSet/data/modified_memcache_10th
 ofile_name = "/home/aperjump/Work/YCSBMonitorToolSet/data/origin_memcache_10thread100m_"
 mmemcache = []
 omemcache = []
-for i in range(3):
+for i in range(1):
     cur_data = pd.read_json(mfile_name + str(i) +".json")
     mmemcache.append(cur_data)
-for i in range(3):
+for i in range(1):
     cur_data2 = pd.read_json(ofile_name + str(i) + ".json")
     omemcache.append(cur_data2)
 mmemcache = pd.concat(mmemcache)

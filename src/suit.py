@@ -28,6 +28,7 @@ class Test_suit(object):
             os.remove(self.origin_mem_test_file)
         self.breakpoint = breaktime
         self.runtime = runtime
+        self.memcache_log = "/home/aperjump/Work/YCSBMonitorToolSet/data/tmp"
         self.memcache_command = config.MEMCACHE_DIR + "/memcached" + " -p " + str(config.MEMCACHE_PORT) + " -m " + str(memory) + " -vv"
         self.YCSB_command1 = "bin/ycsb run jdbc -P workloads/workloadb -P db.properties -s -threads " + str(threadnum) + " -p use_cache=true"
         self.origin_memcache_command = config.ORIGIN_MEMCACHE_DIR + "/memcached" + " -p " + str(config.ORIGIN_MEMCACHE_PORT) + " -m " + str(memory) + " -vv"
@@ -46,7 +47,7 @@ class Test_suit(object):
                 subprocess.run(["rm", "-rf", config.BDB_DIR])
             print("#######ROUND " + str(i) + "#######")
             self.memcache_process = subprocess.Popen(self.memcache_command, encoding='utf-8', shell=True,stderr = subprocess.DEVNULL,
-                                            env={"LD_LIBRARY_PATH": "/usr/local/BerkeleyDB.18.1/lib"})
+                                env={"LD_LIBRARY_PATH": "/usr/local/BerkeleyDB.18.1/lib"})
             self.YCSB_process = subprocess.Popen(self.YCSB_command1, stdout=subprocess.PIPE,
                                             stderr=subprocess.PIPE, encoding='utf-8', shell=True,
                                             preexec_fn=os.setsid)
@@ -54,9 +55,12 @@ class Test_suit(object):
                 errs = self.YCSB_process.stderr.readline().strip()
                 cur_list = errs.split()
                 if len(cur_list) == 45:
-                    data_dict = self.parseycsboutput(cur_list, 0, i)
-                    self.memcache_records.append(data_dict)
                     print(errs)
+                    try:
+                        data_dict = self.parseycsboutput(cur_list, 0, i)
+                        self.memcache_records.append(data_dict)
+                    except Exception as e:
+                        pass
                     if (data_dict["time"] >= self.breakpoint):
                         break
             self.memcache_process.kill()
@@ -75,9 +79,12 @@ class Test_suit(object):
                 errs = self.YCSB_process.stderr.readline().strip()
                 cur_list = errs.split()
                 if len(cur_list) == 45:
-                    data_dict = self.parseycsboutput(cur_list, self.breakpoint, i)
-                    self.memcache_records.append(data_dict)
                     print(errs)
+                    try:
+                        data_dict = self.parseycsboutput(cur_list, self.breakpoint, i)
+                        self.memcache_records.append(data_dict)
+                    except Exception as e:
+                        pass
             self.memcache_process.kill()
             self.YCSB_process.kill()
             tmp_output = subprocess.run("lsof -i:" + str(config.MEMCACHE_PORT), shell = True,
@@ -162,6 +169,6 @@ class Test_suit(object):
         return new_data
 
 if __name__ == "__main__":
-    cur_test = Test_suit("10thread100m", 120, 100, 10, 3)
-    #cur_test.runmemcache()
-    cur_test.runorigin_memcache()
+    cur_test = Test_suit("10thread100m", 120, 1000, 10, 3)
+    cur_test.runmemcache()
+    #cur_test.runorigin_memcache()
